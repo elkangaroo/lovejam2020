@@ -3,6 +3,10 @@ local camera = require "camera"
 local timer = 0
 local world
 local objects = {}
+local resources = {
+  gfx = {},
+  sfx = {},
+}
 
 local CAMERA_SPEED = 50
 local ACC_GRAVITY = 500 -- pixels per second^2
@@ -10,6 +14,9 @@ local LEVEL_WIDTH = love.graphics.getWidth()
 local LEVEL_HEIGHT = love.graphics.getHeight()
 
 function love.load(arg)
+  -- load images only once
+  resources.gfx.metroid = love.graphics.newImage("gfx/metroid.png")
+
   world = bump.newWorld(64) -- cell size = 64
 
   -- ground
@@ -34,11 +41,8 @@ function love.load(arg)
   camera:newLayer(1, function()
     for i, item in ipairs(objects.metroids) do
       love.graphics.setColor(0.60, 0.30, 0.40)
-      -- one time metroid
-      -- according to https://love2d.org/wiki/love.graphics.newImage it's good to have them loaded once globally
-      metroid = love.graphics.newImage("metroid.png")
-      love.graphics.draw(metroid, 100, 100)
-      love.graphics.rectangle("fill", item.x, item.y, item.w, item.h)
+      love.graphics.draw(resources.gfx.metroid, item.x, item.y)
+      -- love.graphics.rectangle("fill", item.x, item.y, item.w, item.h)
     end
   end)
 end
@@ -61,6 +65,7 @@ end
 
 function love.draw()
   love.graphics.setColor(1, 1, 1)
+  love.graphics.setBackgroundColor(15/255, 42/255, 63/255) -- #0f2a3f
   camera:draw()
 end
 
@@ -76,8 +81,8 @@ function addMetroid()
   local metroid = {
     x = love.math.random(camera.x, camera.x + LEVEL_WIDTH),
     y = love.math.random(camera.y, camera.y + LEVEL_HEIGHT / 2),
-    w = 32,
-    h = 32,
+    w = resources.gfx.metroid:getWidth(),
+    h = resources.gfx.metroid:getHeight(),
     vx = 0,
     vy = 0,
     acc = love.math.random(200, 250),
