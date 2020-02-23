@@ -12,7 +12,8 @@ local STATE_GAMEOVER = 4
 
 local game = {
   state = STATE_PAUSED,
-  timer = 0,
+  time = 0,
+  timeLastSpawn = 0,
 }
 local world
 local objects = {}
@@ -78,11 +79,14 @@ function love.update(dt)
     return
   end
 
-  game.timer = game.timer + dt
+  game.time = game.time + dt
 
-  -- sometimes add new metroids
-  if 0 == (math.floor(game.timer * 100) * 0.01) % 1 then
-    addMetroid()
+  -- add 1-3 new metroids every 2 seconds
+  if game.time > game.timeLastSpawn + 2 then
+    game.timeLastSpawn = game.time
+    for i = 1, love.math.random(1, 3) do
+      addMetroid()
+    end
   end
 
   objects.borders.left.x = camera.x
@@ -105,7 +109,7 @@ function love.draw()
   camera:draw()
 
   love.graphics.setColor(colors["#c1e5ea"])
-  love.graphics.print(string.format('FPS: %s Time: %s', love.timer.getFPS(), (math.floor(game.timer * 10) * 0.1)), 2, 2)
+  love.graphics.print(string.format('FPS: %s Time: %s', love.timer.getFPS(), (math.floor(game.time * 10) * 0.1)), 2, 2)
 
   if STATE_PAUSED == game.state then
     drawTextCentered('Press <space> to play.', { 1, 1, 1 })
@@ -142,7 +146,7 @@ function addMetroid()
     vx = 0,
     vy = 0,
     acc = love.math.random(200, 500),
-    volatile = (50 >= love.math.random(1, 100))
+    volatile = (50 >= love.math.random(1, 100)) -- 50% chance for metroid to be destroyed when touching ground
   }
   table.insert(objects.metroids, metroid)
   world:add(metroid, metroid.x, metroid.y, metroid.w, metroid.h)
