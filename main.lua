@@ -41,19 +41,11 @@ function love.load(arg)
 
   -- level boundaries
   objects.borders = {
-    top = {type = "border", x = 0, y = 0, w = LEVEL_WIDTH, h = 1},
-    left = {type = "border", x = 0, y = 0, w = 1, h = LEVEL_HEIGHT},
-    right = {type = "border", x = LEVEL_WIDTH - 1, y = 0, w = 1, h = LEVEL_HEIGHT},
+    left = {type = "border_l", x = 0, y = 0, w = 1, h = LEVEL_HEIGHT},
+    right = {type = "border_r", x = LEVEL_WIDTH - 1, y = 0, w = 1, h = LEVEL_HEIGHT},
   }
-  world:add(objects.borders.top, objects.borders.top.x, objects.borders.top.y, objects.borders.top.w, objects.borders.top.h)
   world:add(objects.borders.left, objects.borders.left.x, objects.borders.left.y, objects.borders.left.w, objects.borders.left.h)
   world:add(objects.borders.right, objects.borders.right.x, objects.borders.right.y, objects.borders.right.w, objects.borders.right.h)
-  camera:newLayer(1, function()
-    for i, item in pairs(objects.borders) do
-      love.graphics.setColor(colors["#c1e5ea"])
-      love.graphics.rectangle("fill", item.x, item.y, item.w, item.h)
-    end
-  end)
 
   -- ground
   objects.ground = {type = "ground", x = 0, y = LEVEL_HEIGHT - 48, w = LEVEL_WIDTH * 100, h = 48}
@@ -88,17 +80,13 @@ function love.update(dt)
 
   game.timer = game.timer + dt
 
-  camera:move(CAMERA_SPEED * dt, 0)
-
   -- sometimes add new metroids
   if 0 == (math.floor(game.timer * 100) * 0.01) % 1 then
     addMetroid()
   end
 
-  objects.borders.top.x = camera.x
   objects.borders.left.x = camera.x
   objects.borders.right.x = camera.x + LEVEL_WIDTH - 1
-  world:update(objects.borders.top, camera.x, camera.y)
   world:update(objects.borders.left, camera.x, camera.y)
   world:update(objects.borders.right, camera.x + LEVEL_WIDTH - 1, camera.y)
 
@@ -106,6 +94,8 @@ function love.update(dt)
   for i, metroid in ipairs(objects.metroids) do
     updateMetroid(metroid, dt, i)
   end
+
+  camera:move(CAMERA_SPEED * dt, 0)
 end
 
 function love.draw()
@@ -129,9 +119,12 @@ end
 function love.keypressed(key, scancode, isrepeat)
   if 'space' == key and STATE_RUNNING == game.state then
     game.state = STATE_PAUSED
-  end
-  if 'space' == key and STATE_PAUSED == game.state then
+  elseif 'space' == key and STATE_PAUSED == game.state then
     game.state = STATE_RUNNING
+  end
+
+  if 'escape' == key then
+    love.event.quit()
   end
 end
 
@@ -180,13 +173,13 @@ function updatePlayer(self, dt)
     self.vy = self.vy + ACC_GRAVITY * dt
   end
 
-  local future_x = self.x + self.vx * dt
+  local future_x = self.x + CAMERA_SPEED * dt + self.vx * dt -- need to add CAMERA_SPEED * dt to be consistent with camera movement for now
   local future_y = self.y + self.vy * dt
 
   local next_x, next_y, cols, len = world:move(self, future_x, future_y, function(item, other)
     -- return values must be "touch", "cross", "slide", "bounce" or nil
     if "ground" == other.type then return "slide"
-    elseif "border" == other.type then return "slide"
+    elseif "border_l" == other.type or "border_r" == other.type then return "bounce"
     elseif "metroid" == other.type then return "touch"
     else return nil end
   end)
@@ -196,13 +189,26 @@ function updatePlayer(self, dt)
       game.state = STATE_GAMEOVER
     end
 
-    -- bounce of borders
-    if "border" == col.other.type and ((col.normal.x < 0 and self.vx > 0) or (col.normal.x > 0 and self.vx < 0)) then
+    -- bounce player from left screen edge
+    if "border_l" == col.other.type then
       self.vx = -self.vx
+      if col.touch.x <= col.other.x + col.other.w then
+        next_x = col.other.x + col.other.w + 16
+        world:update(self, next_x, next_y)
+      end
+    end
+
+    -- bounce player from right screen edge
+    if "border_r" == col.other.type then
+      self.vx = -self.vx
+      if col.touch.x + col.item.w >= col.other.x then
+        next_x = col.other.x - col.item.w - 16
+        world:update(self, next_x, next_y)
+      end
     end
 
     -- stop jumping when player touches the ground
-    if "ground" == col.other.type and col.normal.y < 0 and self.vy > 0 then
+    if "ground" == col.other.type and (col.normal.y < 0 and self.vy > 0) then
       self.vy = 0
     end
   end
