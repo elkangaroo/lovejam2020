@@ -14,3 +14,8 @@ Just clone this repository:
     git clone git@github.com:elkangaroo/lovejam2020.git
 
 And run `love lovejam2020`. Have fun saving the Schnabeltier.
+
+
+## Farbpalette
+
+- https://lospec.com/palette-list/slso-clr17
