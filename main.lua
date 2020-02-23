@@ -33,7 +33,11 @@ function love.load(arg)
   addMetroid()
   camera:newLayer(1, function()
     for i, item in ipairs(objects.metroids) do
-      love.graphics.setColor(0.20, 0.30, 0.40)
+      love.graphics.setColor(0.60, 0.30, 0.40)
+      -- one time metroid
+      -- according to https://love2d.org/wiki/love.graphics.newImage it's good to have them loaded once globally
+      metroid = love.graphics.newImage("metroid.png")
+      love.graphics.draw(metroid, 100, 100)
       love.graphics.rectangle("fill", item.x, item.y, item.w, item.h)
     end
   end)
@@ -79,6 +83,7 @@ function addMetroid()
     acc = love.math.random(200, 250),
     volatile = (50 >= love.math.random(1, 100))
   }
+  -- not able to add my metroid here ...
   table.insert(objects.metroids, metroid)
   world:add(metroid, metroid.x, metroid.y, metroid.w, metroid.h)
 end
