@@ -6,6 +6,25 @@ local game = {
 }
 local world
 local objects = {}
+local colors = { -- SLSO-CLR17 17 Color Palette
+  ["#2e2c3b"] = {46/255, 44/255, 59/255},
+  ["#3e415f"] = {62/255, 65/255, 95/255},
+  ["#55607d"] = {85/255, 96/255, 125/255},
+  ["#747d88"] = {116/255, 125/255, 136/255},
+  ["#41de95"] = {65/255, 222/255, 149/255},
+  ["#2aa4aa"] = {42/255, 164/255, 170/255},
+  ["#3b77a6"] = {59/255, 119/255, 166/255},
+  ["#249337"] = {36/255, 147/255, 55/255},
+  ["#56be44"] = {86/255, 190/255, 68/255},
+  ["#c6de78"] = {198/255, 222/255, 120/255},
+  ["#f3c220"] = {243/255, 194/255, 32/255},
+  ["#c4651c"] = {196/255, 101/255, 28/255},
+  ["#b54131"] = {181/255, 65/255, 49/255},
+  ["#61407a"] = {97/255, 64/255, 122/255},
+  ["#8f3da7"] = {143/255, 61/255, 167/255},
+  ["#ea619d"] = {234/255, 97/255, 157/255},
+  ["#c1e5ea"] = {193/255, 229/255, 234/255},
+}
 
 local CAMERA_SPEED = 50
 local ACC_GRAVITY = 500 -- pixels per second^2
@@ -19,7 +38,7 @@ function love.load(arg)
   objects.ground = {x = 0, y = LEVEL_HEIGHT - 48, w = LEVEL_WIDTH * 100, h = 48}
   world:add(objects.ground, objects.ground.x, objects.ground.y, objects.ground.w, objects.ground.h)
   camera:newLayer(1, function()
-    love.graphics.setColor(0.28, 0.63, 0.05)
+    love.graphics.setColor(colors["#61407a"])
     love.graphics.rectangle("fill", objects.ground.x, objects.ground.y, objects.ground.w, objects.ground.h)
   end)
 
@@ -27,7 +46,7 @@ function love.load(arg)
   objects.player = {x = 16, y = LEVEL_HEIGHT - 2*48, w = 96, h = 48, vx = 0, vy = 0, acc_run = 200, acc_jump = 400}
   world:add(objects.player, objects.player.x, objects.player.y, objects.player.w, objects.player.h)
   camera:newLayer(1, function()
-    love.graphics.setColor(0.20, 0.20, 0.20)
+    love.graphics.setColor(colors["#f3c220"])
     love.graphics.rectangle("fill", objects.player.x, objects.player.y, objects.player.w, objects.player.h)
   end)
 
@@ -36,7 +55,7 @@ function love.load(arg)
   addMetroid()
   camera:newLayer(1, function()
     for i, item in ipairs(objects.metroids) do
-      love.graphics.setColor(0.20, 0.30, 0.40)
+      love.graphics.setColor(colors["#249337"])
       love.graphics.rectangle("fill", item.x, item.y, item.w, item.h)
     end
   end)
@@ -64,9 +83,10 @@ end
 
 function love.draw()
   love.graphics.setColor(1, 1, 1)
+  love.graphics.setBackgroundColor(colors["#2e2c3b"])
   camera:draw()
 
-  love.graphics.setColor(0.3, 0.9, 1)
+  love.graphics.setColor(colors["#c1e5ea"])
   love.graphics.print(string.format('FPS: %s Time: %s', love.timer.getFPS(), (math.floor(game.timer * 10) * 0.1)), 2, 2)
 
   if game.isPaused then
