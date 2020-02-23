@@ -14,3 +14,15 @@ Just clone this repository:
     git clone git@github.com:elkangaroo/lovejam2020.git
 
 And run `love lovejam2020`. Have fun saving the Schnabeltier.
+
+
+## Colors and art
+
+- https://lospec.com/palette-list/slso-clr17
+
+
+## Sound
+
+- level sound [Lair (Tech Lab)](https://twitter.com/BeepboxM/status/1231427273057685506 "Lair (Tech Lab)")
+- jump sound [Nes Space jump](https://freesound.org/people/jalastram/sounds/386657/ "Nes Space jump")
+

@@ -17,6 +17,10 @@ local game = {
 }
 local world
 local objects = {}
+local resources = {
+  gfx = {},
+  sfx = {},
+}
 local colors = { -- SLSO-CLR17 17 Color Palette
   ["#2e2c3b"] = {46/255, 44/255, 59/255},
   ["#3e415f"] = {62/255, 65/255, 95/255},
@@ -38,6 +42,11 @@ local colors = { -- SLSO-CLR17 17 Color Palette
 }
 
 function love.load(arg)
+  -- load images only once
+  resources.gfx.metroid = love.graphics.newImage("gfx/metroid.png")
+  resources.sfx.levelsound = love.audio.newSource("sfx/level_sound.wav", "static")
+  resources.sfx.jump = love.audio.newSource("sfx/jump.wav", "static")
+
   world = bump.newWorld(64) -- cell size = 64
 
   -- level boundaries
@@ -69,9 +78,10 @@ function love.load(arg)
   camera:newLayer(1, function()
     for i, item in ipairs(objects.metroids) do
       love.graphics.setColor(colors["#249337"])
-      love.graphics.rectangle("fill", item.x, item.y, item.w, item.h)
+      love.graphics.draw(resources.gfx.metroid, item.x, item.y)
     end
   end)
+  resources.sfx.levelsound:play()
 end
 
 function love.update(dt)
@@ -141,13 +151,14 @@ function addMetroid()
     type = "metroid",
     x = love.math.random(camera.x, camera.x + LEVEL_WIDTH),
     y = love.math.random(camera.y, camera.y + LEVEL_HEIGHT / 5),
-    w = 32,
-    h = 32,
+    w = resources.gfx.metroid:getWidth(),
+    h = resources.gfx.metroid:getHeight(),
     vx = 0,
     vy = 0,
     acc = love.math.random(200, 500),
     volatile = (50 >= love.math.random(1, 100)) -- 50% chance for metroid to be destroyed when touching ground
   }
+  -- not able to add my metroid here ...
   table.insert(objects.metroids, metroid)
   world:add(metroid, metroid.x, metroid.y, metroid.w, metroid.h)
 end
@@ -170,6 +181,7 @@ function updatePlayer(self, dt)
   if love.keyboard.isDown("up") then
     if 0 == self.vy then
       self.vy = -self.acc_jump
+      resources.sfx.jump:play()
     end
   end
 
