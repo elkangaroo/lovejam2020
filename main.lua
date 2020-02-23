@@ -16,6 +16,8 @@ local LEVEL_HEIGHT = love.graphics.getHeight()
 function love.load(arg)
   -- load images only once
   resources.gfx.metroid = love.graphics.newImage("gfx/metroid.png")
+  resources.sfx.levelsound = love.audio.newSource("sfx/level_sound.wav", "static")
+  resources.sfx.jump = love.audio.newSource("sfx/jump.wav", "static")
 
   world = bump.newWorld(64) -- cell size = 64
 
@@ -45,6 +47,7 @@ function love.load(arg)
       -- love.graphics.rectangle("fill", item.x, item.y, item.w, item.h)
     end
   end)
+  resources.sfx.levelsound:play()
 end
 
 function love.update(dt)
@@ -105,6 +108,7 @@ function updatePlayer(self, dt)
   if love.keyboard.isDown("up") then
     if 0 == self.vy then
       self.vy = -self.acc_jump
+      resources.sfx.jump:play()
     end
   end
 
