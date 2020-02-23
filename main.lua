@@ -26,7 +26,7 @@ local colors = { -- SLSO-CLR17 17 Color Palette
   ["#c1e5ea"] = {193/255, 229/255, 234/255},
 }
 
-local CAMERA_SPEED = 50
+local CAMERA_SPEED = 75
 local ACC_GRAVITY = 500 -- pixels per second^2
 local LEVEL_WIDTH = love.graphics.getWidth()
 local LEVEL_HEIGHT = love.graphics.getHeight()
@@ -34,8 +34,24 @@ local LEVEL_HEIGHT = love.graphics.getHeight()
 function love.load(arg)
   world = bump.newWorld(64) -- cell size = 64
 
+  -- level boundaries
+  objects.borders = {
+    top = {type = "border", x = 0, y = 0, w = LEVEL_WIDTH, h = 1},
+    left = {type = "border", x = 0, y = 0, w = 1, h = LEVEL_HEIGHT},
+    right = {type = "border", x = LEVEL_WIDTH - 1, y = 0, w = 1, h = LEVEL_HEIGHT},
+  }
+  world:add(objects.borders.top, objects.borders.top.x, objects.borders.top.y, objects.borders.top.w, objects.borders.top.h)
+  world:add(objects.borders.left, objects.borders.left.x, objects.borders.left.y, objects.borders.left.w, objects.borders.left.h)
+  world:add(objects.borders.right, objects.borders.right.x, objects.borders.right.y, objects.borders.right.w, objects.borders.right.h)
+  camera:newLayer(1, function()
+    for i, item in pairs(objects.borders) do
+      love.graphics.setColor(colors["#c1e5ea"])
+      love.graphics.rectangle("fill", item.x, item.y, item.w, item.h)
+    end
+  end)
+
   -- ground
-  objects.ground = {x = 0, y = LEVEL_HEIGHT - 48, w = LEVEL_WIDTH * 100, h = 48}
+  objects.ground = {type = "ground", x = 0, y = LEVEL_HEIGHT - 48, w = LEVEL_WIDTH * 100, h = 48}
   world:add(objects.ground, objects.ground.x, objects.ground.y, objects.ground.w, objects.ground.h)
   camera:newLayer(1, function()
     love.graphics.setColor(colors["#61407a"])
@@ -43,7 +59,7 @@ function love.load(arg)
   end)
 
   -- player
-  objects.player = {x = 16, y = LEVEL_HEIGHT - 2*48, w = 96, h = 48, vx = 0, vy = 0, acc_run = 200, acc_jump = 400}
+  objects.player = {type = "player", x = 128, y = LEVEL_HEIGHT - 2*48, w = 96, h = 48, vx = 0, vy = 0, acc_run = 200, acc_jump = 400}
   world:add(objects.player, objects.player.x, objects.player.y, objects.player.w, objects.player.h)
   camera:newLayer(1, function()
     love.graphics.setColor(colors["#f3c220"])
@@ -52,7 +68,6 @@ function love.load(arg)
 
   -- metroids
   objects.metroids = {}
-  addMetroid()
   camera:newLayer(1, function()
     for i, item in ipairs(objects.metroids) do
       love.graphics.setColor(colors["#249337"])
@@ -75,6 +90,13 @@ function love.update(dt)
     addMetroid()
   end
 
+  objects.borders.top.x = camera.x
+  objects.borders.left.x = camera.x
+  objects.borders.right.x = camera.x + LEVEL_WIDTH - 1
+  world:update(objects.borders.top, camera.x, camera.y)
+  world:update(objects.borders.left, camera.x, camera.y)
+  world:update(objects.borders.right, camera.x + LEVEL_WIDTH - 1, camera.y)
+
   updatePlayer(objects.player, dt)
   for i, metroid in ipairs(objects.metroids) do
     updateMetroid(metroid, dt, i)
@@ -84,6 +106,7 @@ end
 function love.draw()
   love.graphics.setColor(1, 1, 1)
   love.graphics.setBackgroundColor(colors["#2e2c3b"])
+
   camera:draw()
 
   love.graphics.setColor(colors["#c1e5ea"])
@@ -96,7 +119,7 @@ end
 
 function love.keypressed(key, scancode, isrepeat)
   if 'space' == key then
-    game.isPaused = false
+    game.isPaused = not game.isPaused
   end
 end
 
@@ -106,13 +129,14 @@ end
 
 function addMetroid()
   local metroid = {
+    type = "metroid",
     x = love.math.random(camera.x, camera.x + LEVEL_WIDTH),
-    y = love.math.random(camera.y, camera.y + LEVEL_HEIGHT / 2),
+    y = love.math.random(camera.y, camera.y + LEVEL_HEIGHT / 5),
     w = 32,
     h = 32,
     vx = 0,
     vy = 0,
-    acc = love.math.random(200, 250),
+    acc = love.math.random(200, 500),
     volatile = (50 >= love.math.random(1, 100))
   }
   table.insert(objects.metroids, metroid)
@@ -141,16 +165,23 @@ function updatePlayer(self, dt)
   local future_x = self.x + self.vx * dt
   local future_y = self.y + self.vy * dt
 
-  local next_x, next_y, cols, len = world:move(self, future_x, future_y)
-  for i = 1, len do
-    local col = cols[i]
+  local next_x, next_y, cols, len = world:move(self, future_x, future_y, function(item, other)
+    -- return values must be "touch", "cross", "slide", "bounce" or nil
+    if "ground" == other.type then return "slide"
+    elseif "border" == other.type then return "slide"
+    elseif "metroid" == other.type then return "touch"
+    else return nil end
+  end)
+  for i, col in ipairs(cols) do
+    print("col player:" .. col.other.type .." -> " .. col.type)
+
     -- bounce of obstacles horizontally
-    if (col.normal.x < 0 and self.vx > 0) or (col.normal.x > 0 and self.vx < 0) then
+    if ("metroid" == col.other.type and col.normal.x < 0 and self.vx > 0) or (col.normal.x > 0 and self.vx < 0) then
       self.vx = -self.vx
     end
 
     -- stop jumping
-    if (col.normal.y < 0 and self.vy > 0) then
+    if ("ground" == col.other.type and col.normal.y < 0 and self.vy > 0) then
       self.vy = 0
     end
   end
@@ -165,9 +196,12 @@ function updateMetroid(self, dt, i)
   local future_y = self.y + self.vy * dt
 
   local next_x, next_y, cols, len = world:move(self, future_x, future_y)
-  if len > 0 and self.volatile then
-    table.remove(objects.metroids, i)
-    world:remove(self)
+  for i, col in ipairs(cols) do
+    print("col metroid:" .. col.other.type .." -> " .. col.type)
+    if len > 0 and "ground" == col.other.type and self.volatile then
+      table.remove(objects.metroids, i)
+      world:remove(self)
+    end
   end
 
   self.x, self.y = next_x, next_y
