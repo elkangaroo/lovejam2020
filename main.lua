@@ -1,6 +1,9 @@
 local bump = require "vendor.bump"
 local camera = require "camera"
-local timer = 0
+local game = {
+  isPaused = true,
+  timer = 0,
+}
 local world
 local objects = {}
 
@@ -40,12 +43,16 @@ function love.load(arg)
 end
 
 function love.update(dt)
-  timer = timer + dt
+  if game.isPaused then
+    return
+  end
+
+  game.timer = game.timer + dt
 
   camera:move(CAMERA_SPEED * dt, 0)
 
   -- sometimes add new metroids
-  if 0 == (math.floor(timer * 100) * 0.01) % 2 then
+  if 0 == (math.floor(game.timer * 100) * 0.01) % 2 then
     addMetroid()
   end
 
@@ -58,10 +65,19 @@ end
 function love.draw()
   love.graphics.setColor(1, 1, 1)
   camera:draw()
+
+  love.graphics.setColor(0.3, 0.9, 1)
+  love.graphics.print(string.format('FPS: %s Time: %s', love.timer.getFPS(), (math.floor(game.timer * 10) * 0.1)), 2, 2)
+
+  if game.isPaused then
+    drawTextCentered('Press <space> to play.', { 1, 1, 1 })
+  end
 end
 
 function love.keypressed(key, scancode, isrepeat)
-
+  if 'space' == key then
+    game.isPaused = false
+  end
 end
 
 function love.keyreleased(key, scancode)
@@ -135,4 +151,15 @@ function updateMetroid(self, dt, i)
   end
 
   self.x, self.y = next_x, next_y
+end
+
+function drawTextCentered(text, color)
+  love.graphics.push()
+    local font = love.graphics.getFont()
+    local _, lines = font:getWrap(text, LEVEL_WIDTH)
+    local x, y = 0, LEVEL_HEIGHT / 2 - font:getHeight() * #lines / 2
+
+    love.graphics.setColor(color)
+    love.graphics.printf(text, x, y, LEVEL_WIDTH, "center")
+  love.graphics.pop()
 end
