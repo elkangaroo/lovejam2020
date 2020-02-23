@@ -1,7 +1,17 @@
 local bump = require "vendor.bump"
 local camera = require "camera"
+
+local CAMERA_SPEED = 75
+local ACC_GRAVITY = 500 -- pixels per second^2
+local LEVEL_WIDTH = love.graphics.getWidth()
+local LEVEL_HEIGHT = love.graphics.getHeight()
+local STATE_RUNNING = 1
+local STATE_PAUSED = 2
+local STATE_WON = 3
+local STATE_GAMEOVER = 4
+
 local game = {
-  isPaused = true,
+  state = STATE_PAUSED,
   timer = 0,
 }
 local world
@@ -25,11 +35,6 @@ local colors = { -- SLSO-CLR17 17 Color Palette
   ["#ea619d"] = {234/255, 97/255, 157/255},
   ["#c1e5ea"] = {193/255, 229/255, 234/255},
 }
-
-local CAMERA_SPEED = 75
-local ACC_GRAVITY = 500 -- pixels per second^2
-local LEVEL_WIDTH = love.graphics.getWidth()
-local LEVEL_HEIGHT = love.graphics.getHeight()
 
 function love.load(arg)
   world = bump.newWorld(64) -- cell size = 64
@@ -77,7 +82,7 @@ function love.load(arg)
 end
 
 function love.update(dt)
-  if game.isPaused then
+  if STATE_RUNNING ~= game.state then
     return
   end
 
@@ -86,7 +91,7 @@ function love.update(dt)
   camera:move(CAMERA_SPEED * dt, 0)
 
   -- sometimes add new metroids
-  if 0 == (math.floor(game.timer * 100) * 0.01) % 2 then
+  if 0 == (math.floor(game.timer * 100) * 0.01) % 1 then
     addMetroid()
   end
 
@@ -112,14 +117,21 @@ function love.draw()
   love.graphics.setColor(colors["#c1e5ea"])
   love.graphics.print(string.format('FPS: %s Time: %s', love.timer.getFPS(), (math.floor(game.timer * 10) * 0.1)), 2, 2)
 
-  if game.isPaused then
+  if STATE_PAUSED == game.state then
     drawTextCentered('Press <space> to play.', { 1, 1, 1 })
+  end
+
+  if STATE_GAMEOVER == game.state then
+    drawTextCentered('GAME OVER', { 1, 1, 1 })
   end
 end
 
 function love.keypressed(key, scancode, isrepeat)
-  if 'space' == key then
-    game.isPaused = not game.isPaused
+  if 'space' == key and STATE_RUNNING == game.state then
+    game.state = STATE_PAUSED
+  end
+  if 'space' == key and STATE_PAUSED == game.state then
+    game.state = STATE_RUNNING
   end
 end
 
@@ -141,6 +153,12 @@ function addMetroid()
   }
   table.insert(objects.metroids, metroid)
   world:add(metroid, metroid.x, metroid.y, metroid.w, metroid.h)
+end
+
+function removeMetroid(i)
+  local metroid = objects.metroids[i]
+  table.remove(objects.metroids, i)
+  world:remove(metroid)
 end
 
 function updatePlayer(self, dt)
@@ -173,15 +191,18 @@ function updatePlayer(self, dt)
     else return nil end
   end)
   for i, col in ipairs(cols) do
-    print("col player:" .. col.other.type .." -> " .. col.type)
+    -- GAME OVER when player touches a metroid
+    if "metroid" == col.other.type then
+      game.state = STATE_GAMEOVER
+    end
 
-    -- bounce of obstacles horizontally
-    if ("metroid" == col.other.type and col.normal.x < 0 and self.vx > 0) or (col.normal.x > 0 and self.vx < 0) then
+    -- bounce of borders
+    if "border" == col.other.type and ((col.normal.x < 0 and self.vx > 0) or (col.normal.x > 0 and self.vx < 0)) then
       self.vx = -self.vx
     end
 
-    -- stop jumping
-    if ("ground" == col.other.type and col.normal.y < 0 and self.vy > 0) then
+    -- stop jumping when player touches the ground
+    if "ground" == col.other.type and col.normal.y < 0 and self.vy > 0 then
       self.vy = 0
     end
   end
@@ -197,10 +218,13 @@ function updateMetroid(self, dt, i)
 
   local next_x, next_y, cols, len = world:move(self, future_x, future_y)
   for i, col in ipairs(cols) do
-    print("col metroid:" .. col.other.type .." -> " .. col.type)
-    if len > 0 and "ground" == col.other.type and self.volatile then
-      table.remove(objects.metroids, i)
-      world:remove(self)
+    -- GAME OVER when player touches a metroid
+    if "player" == col.other.type then
+      game.state = STATE_GAMEOVER
+    end
+
+    if "ground" == col.other.type and self.volatile then
+      removeMetroid(i)
     end
   end
 
