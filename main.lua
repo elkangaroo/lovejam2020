@@ -13,6 +13,7 @@ local STATE_RUNNING = 1
 local STATE_PAUSED = 2
 local STATE_WON = 3
 local STATE_GAMEOVER = 4
+local TIME_TO_ESCAPE = 30 -- seconds
 
 local game = {
   state = STATE_PAUSED,
@@ -110,6 +111,12 @@ function love.update(dt)
 
   game.time = game.time + dt
 
+  -- check for winning condition
+  if game.time > TIME_TO_ESCAPE then
+    game.state = STATE_WON
+    return
+  end
+
   -- add 1-3 new metroids every 2 seconds
   if game.time > game.timeLastSpawn + 2 then
     game.timeLastSpawn = game.time
@@ -138,11 +145,15 @@ function love.draw()
   love.graphics.print(string.format('FPS: %s Time: %s', love.timer.getFPS(), (math.floor(game.time * 10) * 0.1)), 2, 2)
 
   if STATE_PAUSED == game.state then
-    drawTextCentered('Press <space> to play.', { 1, 1, 1 })
+    drawTextCentered("ESCAPE THE METROIDS\nPress <space> to play.", { 1, 1, 1 })
   end
 
   if STATE_GAMEOVER == game.state then
-    drawTextCentered('GAME OVER', { 1, 1, 1 })
+    drawTextCentered("GAME OVER\nPress <r> to restart.", { 1, 1, 1 })
+  end
+
+  if STATE_WON == game.state then
+    drawTextCentered("CONGRATULATIONS\nYou escaped the metroids.\nPress <r> to restart.", { 1, 1, 1 })
   end
 end
 
@@ -151,6 +162,10 @@ function love.keypressed(key, scancode, isrepeat)
     game.state = STATE_PAUSED
   elseif 'space' == key and STATE_PAUSED == game.state then
     game.state = STATE_RUNNING
+  end
+
+  if 'r' == key then
+    love.event.quit("restart")
   end
 
   if 'escape' == key then
