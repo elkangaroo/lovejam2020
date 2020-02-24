@@ -2,7 +2,11 @@ local bump = require "vendor.bump"
 local camera = require "camera"
 
 local CAMERA_SPEED = 75
-local ACC_GRAVITY = 500 -- pixels per second^2
+local GRAVITY = 981 -- pixels per second^2
+local METROID_SCALE = 0.5
+local PLAYER_SCALE = 1.0
+local PLAYER_ACC_RUN = 200
+local PLAYER_ACC_JUMP = 600
 local LEVEL_WIDTH = love.graphics.getWidth()
 local LEVEL_HEIGHT = love.graphics.getHeight()
 local STATE_RUNNING = 1
@@ -42,6 +46,8 @@ local colors = { -- SLSO-CLR17 17 Color Palette
 }
 
 function love.load(arg)
+  love.graphics.setDefaultFilter('nearest', 'nearest')
+
   -- load images only once
   resources.gfx.metroid = love.graphics.newImage("gfx/metroid.png")
   resources.gfx.player = love.graphics.newImage("gfx/player.png")
@@ -55,12 +61,12 @@ function love.load(arg)
     left = {type = "border_l", x = 0, y = 0, w = 1, h = LEVEL_HEIGHT},
     right = {type = "border_r", x = LEVEL_WIDTH - 1, y = 0, w = 1, h = LEVEL_HEIGHT},
   }
-  world:add(objects.borders.left, objects.borders.left.x, objects.borders.left.y, objects.borders.left.w, objects.borders.left.h)
-  world:add(objects.borders.right, objects.borders.right.x, objects.borders.right.y, objects.borders.right.w, objects.borders.right.h)
+  addWorldObject(objects.borders.left)
+  addWorldObject(objects.borders.right)
 
   -- ground
   objects.ground = {type = "ground", x = 0, y = LEVEL_HEIGHT - 48, w = LEVEL_WIDTH * 100, h = 48}
-  world:add(objects.ground, objects.ground.x, objects.ground.y, objects.ground.w, objects.ground.h)
+  addWorldObject(objects.ground)
   camera:newLayer(1, function()
     love.graphics.setColor(colors["#61407a"])
     love.graphics.rectangle("fill", objects.ground.x, objects.ground.y, objects.ground.w, objects.ground.h)
@@ -71,17 +77,17 @@ function love.load(arg)
     type = "player",
     x = 128,
     y = objects.ground.y - resources.gfx.player:getHeight(),
-    w = resources.gfx.player:getWidth(),
-    h = resources.gfx.player:getHeight(),
+    w = resources.gfx.player:getWidth() * PLAYER_SCALE,
+    h = resources.gfx.player:getHeight() * PLAYER_SCALE,
     vx = 0,
     vy = 0,
-    acc_run = 200,
-    acc_jump = 400
+    acc_run = PLAYER_ACC_RUN,
+    acc_jump = PLAYER_ACC_JUMP
   }
-  world:add(objects.player, objects.player.x, objects.player.y, objects.player.w, objects.player.h)
+  addWorldObject(objects.player)
   camera:newLayer(1, function()
     love.graphics.setColor(colors["#f3c220"])
-    love.graphics.draw(resources.gfx.player, objects.player.x, objects.player.y)
+    love.graphics.draw(resources.gfx.player, objects.player.x, objects.player.y, 0, PLAYER_SCALE)
   end)
 
   -- metroids
@@ -89,7 +95,7 @@ function love.load(arg)
   camera:newLayer(1, function()
     for i, item in ipairs(objects.metroids) do
       love.graphics.setColor(colors["#249337"])
-      love.graphics.draw(resources.gfx.metroid, item.x, item.y)
+      love.graphics.draw(resources.gfx.metroid, item.x, item.y, 0, METROID_SCALE)
     end
   end)
 
@@ -112,11 +118,8 @@ function love.update(dt)
     end
   end
 
-  objects.borders.left.x = camera.x
-  objects.borders.right.x = camera.x + LEVEL_WIDTH - 1
-  world:update(objects.borders.left, camera.x, camera.y)
-  world:update(objects.borders.right, camera.x + LEVEL_WIDTH - 1, camera.y)
-
+  updateLeftBorder(objects.borders.left)
+  updateRightBorder(objects.borders.right)
   updatePlayer(objects.player, dt)
   for i, metroid in ipairs(objects.metroids) do
     updateMetroid(metroid, dt, i)
@@ -159,20 +162,24 @@ function love.keyreleased(key, scancode)
 
 end
 
+function addWorldObject(object)
+  world:add(object, object.x, object.y, object.w, object.h)
+end
+
 function addMetroid()
   local metroid = {
     type = "metroid",
     x = love.math.random(camera.x, camera.x + LEVEL_WIDTH),
     y = love.math.random(camera.y, camera.y + LEVEL_HEIGHT / 5),
-    w = resources.gfx.metroid:getWidth(),
-    h = resources.gfx.metroid:getHeight(),
+    w = resources.gfx.metroid:getWidth() * METROID_SCALE,
+    h = resources.gfx.metroid:getHeight() * METROID_SCALE,
     vx = 0,
     vy = 0,
     acc = love.math.random(200, 500),
-    volatile = (50 >= love.math.random(1, 100)) -- 50% chance for metroid to be destroyed when touching ground
+    volatile = false -- (50 >= love.math.random(1, 100)) -- 50% chance for metroid to be destroyed when touching ground
   }
   table.insert(objects.metroids, metroid)
-  world:add(metroid, metroid.x, metroid.y, metroid.w, metroid.h)
+  addWorldObject(metroid)
 end
 
 function removeMetroid(i)
@@ -198,7 +205,7 @@ function updatePlayer(self, dt)
   end
 
   if 0 ~= self.vy then
-    self.vy = self.vy + ACC_GRAVITY * dt
+    self.vy = self.vy + GRAVITY * dt
   end
 
   local future_x = self.x + CAMERA_SPEED * dt + self.vx * dt -- need to add CAMERA_SPEED * dt to be consistent with camera movement for now
@@ -263,6 +270,16 @@ function updateMetroid(self, dt, i)
   end
 
   self.x, self.y = next_x, next_y
+end
+
+function updateLeftBorder(self, dt)
+  self.x = camera.x
+  world:update(self, camera.x, camera.y)
+end
+
+function updateRightBorder(self, dt)
+  self.x = camera.x + LEVEL_WIDTH - 1
+  world:update(self, camera.x + LEVEL_WIDTH - 1, camera.y)
 end
 
 function drawTextCentered(text, color)
