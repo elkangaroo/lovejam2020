@@ -44,6 +44,7 @@ local colors = { -- SLSO-CLR17 17 Color Palette
 function love.load(arg)
   -- load images only once
   resources.gfx.metroid = love.graphics.newImage("gfx/metroid.png")
+  resources.gfx.player = love.graphics.newImage("gfx/player.png")
   resources.sfx.levelsound = love.audio.newSource("sfx/level_sound.wav", "static")
   resources.sfx.jump = love.audio.newSource("sfx/jump.wav", "static")
 
@@ -70,7 +71,7 @@ function love.load(arg)
   world:add(objects.player, objects.player.x, objects.player.y, objects.player.w, objects.player.h)
   camera:newLayer(1, function()
     love.graphics.setColor(colors["#f3c220"])
-    love.graphics.rectangle("fill", objects.player.x, objects.player.y, objects.player.w, objects.player.h)
+    love.graphics.draw(resources.gfx.player, objects.player.x, objects.player.y)
   end)
 
   -- metroids
@@ -158,7 +159,6 @@ function addMetroid()
     acc = love.math.random(200, 500),
     volatile = (50 >= love.math.random(1, 100)) -- 50% chance for metroid to be destroyed when touching ground
   }
-  -- not able to add my metroid here ...
   table.insert(objects.metroids, metroid)
   world:add(metroid, metroid.x, metroid.y, metroid.w, metroid.h)
 end
