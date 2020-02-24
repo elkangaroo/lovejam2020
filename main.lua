@@ -6,6 +6,7 @@ local GRAVITY = 981 -- pixels per second^2
 local METROID_SCALE = 0.5
 local PLAYER_SCALE = 1.0
 local PLAYER_ACC_RUN = 200
+local PLAYER_ACC_BRAKE = 2000
 local PLAYER_ACC_JUMP = 600
 local LEVEL_WIDTH = love.graphics.getWidth()
 local LEVEL_HEIGHT = love.graphics.getHeight()
@@ -83,6 +84,7 @@ function love.load(arg)
     vx = 0,
     vy = 0,
     acc_run = PLAYER_ACC_RUN,
+    acc_brake = PLAYER_ACC_BRAKE,
     acc_jump = PLAYER_ACC_JUMP
   }
   addWorldObject(objects.player)
@@ -205,11 +207,16 @@ end
 
 function updatePlayer(self, dt)
   if love.keyboard.isDown("right") then
-    self.vx = self.vx + dt * self.acc_run
+    self.vx = self.vx + dt * (self.vx < 0 and self.acc_brake or self.acc_run)
   elseif love.keyboard.isDown("left") then
-    self.vx = self.vx - dt * self.acc_run
+    self.vx = self.vx - dt * (self.vx > 0 and self.acc_brake or self.acc_run)
   else
-    self.vx = 0
+    local brake = dt * (self.vx < 0 and self.acc_brake or -self.acc_brake)
+    if math.abs(brake) > math.abs(self.vx) then
+      self.vx = 0
+    else
+      self.vx = self.vx + brake
+    end
   end
 
   if love.keyboard.isDown("up") then
@@ -241,18 +248,18 @@ function updatePlayer(self, dt)
 
     -- bounce player from left screen edge
     if "border_l" == col.other.type then
-      self.vx = -self.vx
+      self.vx = -self.vx / 2
       if col.touch.x <= col.other.x + col.other.w then
-        next_x = col.other.x + col.other.w + 16
+        next_x = col.other.x + col.other.w + 8
         world:update(self, next_x, next_y)
       end
     end
 
     -- bounce player from right screen edge
     if "border_r" == col.other.type then
-      self.vx = -self.vx
+      self.vx = -self.vx / 2
       if col.touch.x + col.item.w >= col.other.x then
-        next_x = col.other.x - col.item.w - 16
+        next_x = col.other.x - col.item.w - 8
         world:update(self, next_x, next_y)
       end
     end
