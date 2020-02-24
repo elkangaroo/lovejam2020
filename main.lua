@@ -67,7 +67,17 @@ function love.load(arg)
   end)
 
   -- player
-  objects.player = {type = "player", x = 128, y = LEVEL_HEIGHT - 2*48, w = 96, h = 48, vx = 0, vy = 0, acc_run = 200, acc_jump = 400}
+  objects.player = {
+    type = "player",
+    x = 128,
+    y = objects.ground.y - resources.gfx.player:getHeight(),
+    w = resources.gfx.player:getWidth(),
+    h = resources.gfx.player:getHeight(),
+    vx = 0,
+    vy = 0,
+    acc_run = 200,
+    acc_jump = 400
+  }
   world:add(objects.player, objects.player.x, objects.player.y, objects.player.w, objects.player.h)
   camera:newLayer(1, function()
     love.graphics.setColor(colors["#f3c220"])
@@ -82,6 +92,8 @@ function love.load(arg)
       love.graphics.draw(resources.gfx.metroid, item.x, item.y)
     end
   end)
+
+  resources.sfx.levelsound:setLooping(true)
   resources.sfx.levelsound:play()
 end
 
