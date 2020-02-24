@@ -91,7 +91,7 @@ function love.load(arg)
   }
   addWorldObject(objects.player)
   camera:newLayer(1, function()
-    love.graphics.setColor(colors["#f3c220"])
+    love.graphics.setColor(1,1,1)
     love.graphics.draw(resources.gfx.player, objects.player.x, objects.player.y, 0, PLAYER_SCALE)
   end)
 
@@ -99,7 +99,7 @@ function love.load(arg)
   objects.metroids = {}
   camera:newLayer(1, function()
     for i, item in ipairs(objects.metroids) do
-      love.graphics.setColor(colors["#249337"])
+      love.graphics.setColor(1,1,1)
       love.graphics.draw(resources.gfx.metroid, item.x, item.y, 0, METROID_SCALE)
     end
   end)
@@ -141,7 +141,7 @@ end
 
 function love.draw()
   love.graphics.setColor(1, 1, 1)
-  love.graphics.setBackgroundColor(colors["#2e2c3b"])
+  love.graphics.setBackgroundColor(colors["#3e415f"])
 
   camera:draw()
 
