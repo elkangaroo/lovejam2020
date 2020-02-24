@@ -55,6 +55,8 @@ function love.load(arg)
   resources.gfx.player = love.graphics.newImage("gfx/player.png")
   resources.sfx.levelsound = love.audio.newSource("sfx/level_sound.wav", "static")
   resources.sfx.jump = love.audio.newSource("sfx/jump.wav", "static")
+  resources.gfx.font16 = love.graphics.newFont("gfx/boxy_bold.ttf", 16)
+  resources.gfx.font32 = love.graphics.newFont("gfx/boxy_bold.ttf", 32)
 
   world = bump.newWorld(64) -- cell size = 64
 
@@ -144,7 +146,8 @@ function love.draw()
   camera:draw()
 
   love.graphics.setColor(colors["#c1e5ea"])
-  love.graphics.print(string.format('FPS: %s Time: %s', love.timer.getFPS(), (math.floor(game.time * 10) * 0.1)), 2, 2)
+  love.graphics.setFont(resources.gfx.font16)
+  love.graphics.print(string.format('Time: %s', (math.floor(game.time * 10) * 0.1)), 8, 8)
 
   if STATE_PAUSED == game.state then
     drawTextCentered("ESCAPE THE METROIDS\nPress <space> to play.", { 1, 1, 1 })
@@ -311,6 +314,7 @@ function drawTextCentered(text, color)
     local x, y = 0, LEVEL_HEIGHT / 2 - font:getHeight() * #lines / 2
 
     love.graphics.setColor(color)
+    love.graphics.setFont(resources.gfx.font32)
     love.graphics.printf(text, x, y, LEVEL_WIDTH, "center")
   love.graphics.pop()
 end
